@@ -7,8 +7,6 @@ from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from scipy import stats
-from mlxtend.frequent_patterns import apriori, association_rules
-from mlxtend.preprocessing import TransactionEncoder
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -26,7 +24,7 @@ st.markdown("**InsightMart Analytics** – Customer Purchase Pattern Analysis")
 st.markdown("---")
 
 # ─────────────────────────────────────────────
-# STAGE 1: LOAD DATA
+# LOAD DATA
 # ─────────────────────────────────────────────
 @st.cache_data
 def load_data():
@@ -40,44 +38,21 @@ except FileNotFoundError:
     st.stop()
 
 # ─────────────────────────────────────────────
-# STAGE 2: DATA CLEANING & PREPROCESSING
+# PREPROCESSING
 # ─────────────────────────────────────────────
 @st.cache_data
 def preprocess(df):
     df = df.copy()
-
-    # Handle missing values
-    df["Product_Category_2"].fillna(0, inplace=True)
-    df["Product_Category_3"].fillna(0, inplace=True)
-
-    # Drop duplicates
+    df["Product_Category_2"] = df["Product_Category_2"].fillna(0)
+    df["Product_Category_3"] = df["Product_Category_3"].fillna(0)
     df.drop_duplicates(inplace=True)
-
-    # Encode Gender: Male = 0, Female = 1
     df["Gender_enc"] = df["Gender"].map({"M": 0, "F": 1})
-
-    # Encode Age groups into ordered numbers
-    age_map = {
-        "0-17": 1,
-        "18-25": 2,
-        "26-35": 3,
-        "36-45": 4,
-        "46-50": 5,
-        "51-55": 6,
-        "55+": 7
-    }
+    age_map = {"0-17": 1, "18-25": 2, "26-35": 3, "36-45": 4, "46-50": 5, "51-55": 6, "55+": 7}
     df["Age_enc"] = df["Age"].map(age_map)
-
-    # Encode City_Category
     df["City_enc"] = df["City_Category"].map({"A": 1, "B": 2, "C": 3})
-
-    # Encode Stay_In_Current_City_Years (handle '4+')
     df["Stay_enc"] = df["Stay_In_Current_City_Years"].replace("4+", 4).astype(int)
-
-    # Normalize Purchase (Min-Max)
     scaler = MinMaxScaler()
     df["Purchase_norm"] = scaler.fit_transform(df[["Purchase"]])
-
     return df
 
 df = preprocess(df_raw)
@@ -127,7 +102,6 @@ if stage == "📌 Project Scope":
     | Product_Category_1/2/3 | Product category codes |
     | Purchase | Purchase amount in dollars |
     """)
-
     st.info(f"**Dataset loaded:** {df_raw.shape[0]:,} rows × {df_raw.shape[1]} columns")
 
 # ─────────────────────────────────────────────
@@ -140,7 +114,6 @@ elif stage == "🧹 Data Overview":
     with col1:
         st.subheader("Raw Data Sample")
         st.dataframe(df_raw.head(10))
-
     with col2:
         st.subheader("Missing Values (Raw)")
         missing = df_raw.isnull().sum().reset_index()
@@ -151,10 +124,11 @@ elif stage == "🧹 Data Overview":
     col3, col4 = st.columns(2)
     with col3:
         st.write("**Shape:**", df.shape)
-        st.write("**Duplicates removed.**")
-        st.write("**Gender encoded:** M=0, F=1")
-        st.write("**Age groups encoded:** 0-17→1 ... 55+→7")
-        st.write("**Purchase normalized** using Min-Max scaling.")
+        st.write("✅ Duplicates removed")
+        st.write("✅ Missing values filled with 0")
+        st.write("✅ Gender encoded: M=0, F=1")
+        st.write("✅ Age groups encoded: 0-17→1 ... 55+→7")
+        st.write("✅ Purchase normalised using Min-Max scaling")
     with col4:
         st.dataframe(df[["Gender", "Gender_enc", "Age", "Age_enc", "Purchase", "Purchase_norm"]].head(10))
 
@@ -175,30 +149,26 @@ elif stage == "📊 EDA & Visualizations":
         "Correlation Heatmap"
     ])
 
-    # TAB 1 – Histograms / Boxplots by Age & Gender
     with tab1:
         st.subheader("Purchase Distribution by Age & Gender")
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
-        # Histogram by Age
-        age_order = sorted(df["Age"].unique(), key=lambda x: {"0-17":1,"18-25":2,"26-35":3,"36-45":4,"46-50":5,"51-55":6,"55+":7}.get(x, 99))
+        age_order = ["0-17","18-25","26-35","36-45","46-50","51-55","55+"]
+        age_order = [a for a in age_order if a in df["Age"].unique()]
         purchase_by_age = [df[df["Age"] == a]["Purchase"].values for a in age_order]
         axes[0].boxplot(purchase_by_age, labels=age_order)
         axes[0].set_title("Purchase by Age Group")
         axes[0].set_xlabel("Age Group")
         axes[0].set_ylabel("Purchase Amount ($)")
         axes[0].tick_params(axis='x', rotation=30)
-
-        # Boxplot by Gender
         df.boxplot(column="Purchase", by="Gender", ax=axes[1])
         axes[1].set_title("Purchase by Gender")
         axes[1].set_xlabel("Gender")
         axes[1].set_ylabel("Purchase Amount ($)")
         plt.suptitle("")
+        plt.tight_layout()
         st.pyplot(fig)
         plt.close()
 
-    # TAB 2 – Bar charts for product categories
     with tab2:
         st.subheader("Most Popular Product Categories")
         fig, axes = plt.subplots(1, 3, figsize=(18, 5))
@@ -212,17 +182,14 @@ elif stage == "📊 EDA & Visualizations":
         st.pyplot(fig)
         plt.close()
 
-    # TAB 3 – Scatter plots
     with tab3:
         st.subheader("Purchase vs Occupation & City Stay")
         fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
         occ_avg = df.groupby("Occupation")["Purchase"].mean().reset_index()
         axes[0].scatter(occ_avg["Occupation"], occ_avg["Purchase"], color="coral", s=80)
         axes[0].set_title("Avg Purchase vs Occupation")
         axes[0].set_xlabel("Occupation Code")
         axes[0].set_ylabel("Avg Purchase ($)")
-
         stay_avg = df.groupby("Stay_enc")["Purchase"].mean().reset_index()
         axes[1].scatter(stay_avg["Stay_enc"], stay_avg["Purchase"], color="mediumseagreen", s=80)
         axes[1].set_title("Avg Purchase vs Years in City")
@@ -232,7 +199,6 @@ elif stage == "📊 EDA & Visualizations":
         st.pyplot(fig)
         plt.close()
 
-    # TAB 4 – Average purchase per category
     with tab4:
         st.subheader("Average Purchase per Product Category 1")
         avg_cat = df.groupby("Product_Category_1")["Purchase"].mean().sort_values(ascending=False)
@@ -245,7 +211,6 @@ elif stage == "📊 EDA & Visualizations":
         st.pyplot(fig)
         plt.close()
 
-    # TAB 5 – Correlation heatmap
     with tab5:
         st.subheader("Correlation Heatmap")
         corr_cols = ["Age_enc", "Gender_enc", "Occupation", "City_enc",
@@ -260,28 +225,51 @@ elif stage == "📊 EDA & Visualizations":
         plt.close()
 
 # ─────────────────────────────────────────────
-# STAGE 4 – CLUSTERING
+# STAGE 4 – CLUSTERING  (fixed)
 # ─────────────────────────────────────────────
 elif stage == "🔵 Clustering Analysis":
     st.header("Stage 4: K-Means Clustering Analysis")
 
+    # ── safe sample: aggregate per user first to shrink the dataset ──
+    @st.cache_data
+    def get_cluster_data(raw_df):
+        user_df = raw_df.groupby("User_ID").agg(
+            Age_enc=("Age", lambda x: {"0-17":1,"18-25":2,"26-35":3,
+                                        "36-45":4,"46-50":5,"51-55":6,"55+":7}.get(x.iloc[0], 3)),
+            Occupation=("Occupation", "first"),
+            Marital_Status=("Marital_Status", "first"),
+            Total_Purchase=("Purchase", "sum"),
+            Num_Transactions=("Purchase", "count")
+        ).reset_index()
+        scaler = MinMaxScaler()
+        user_df["Purchase_norm"] = scaler.fit_transform(user_df[["Total_Purchase"]])
+        return user_df
+
+    user_df = get_cluster_data(df_raw)
+
     features = ["Age_enc", "Occupation", "Marital_Status", "Purchase_norm"]
-    sample = df[features].dropna().sample(n=min(20000, len(df)), random_state=42)
+    X = user_df[features].dropna().values
 
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(sample)
+    X_scaled = scaler.fit_transform(X)
 
     # Elbow method
     st.subheader("Elbow Method – Optimal Number of Clusters")
-    inertias = []
-    K_range = range(2, 11)
-    for k in K_range:
-        km = KMeans(n_clusters=k, random_state=42, n_init=10)
-        km.fit(X_scaled)
-        inertias.append(km.inertia_)
+
+    @st.cache_data
+    def compute_elbow(X_scaled_list):
+        X_arr = np.array(X_scaled_list)
+        inertias = []
+        for k in range(2, 11):
+            km = KMeans(n_clusters=k, random_state=42, n_init=10)
+            km.fit(X_arr)
+            inertias.append(km.inertia_)
+        return inertias
+
+    inertias = compute_elbow(X_scaled.tolist())
 
     fig, ax = plt.subplots(figsize=(8, 4))
-    ax.plot(K_range, inertias, "bo-", markersize=8)
+    ax.plot(range(2, 11), inertias, "bo-", markersize=8)
     ax.set_title("Elbow Method for Optimal K")
     ax.set_xlabel("Number of Clusters (K)")
     ax.set_ylabel("Inertia")
@@ -290,26 +278,39 @@ elif stage == "🔵 Clustering Analysis":
     st.pyplot(fig)
     plt.close()
 
-    # Apply K=4
     k = st.slider("Select number of clusters", 2, 8, 4)
-    km_final = KMeans(n_clusters=k, random_state=42, n_init=10)
-    sample = sample.copy()
-    sample["Cluster"] = km_final.fit_predict(X_scaled)
 
-    # Cluster labels
-    cluster_labels = {
+    @st.cache_data
+    def run_kmeans(X_scaled_list, k):
+        X_arr = np.array(X_scaled_list)
+        km = KMeans(n_clusters=k, random_state=42, n_init=10)
+        labels = km.fit_predict(X_arr)
+        pca = PCA(n_components=2)
+        X_pca = pca.fit_transform(X_arr)
+        return labels.tolist(), X_pca.tolist()
+
+    labels, X_pca_list = run_kmeans(X_scaled.tolist(), k)
+    X_pca = np.array(X_pca_list)
+
+    cluster_name_map = {
         0: "💰 Budget Shoppers",
         1: "🛒 Discount Lovers",
         2: "⭐ Premium Buyers",
-        3: "🎯 Occasional Spenders"
+        3: "🎯 Occasional Spenders",
+        4: "🔥 Power Buyers",
+        5: "🌟 Loyal Customers",
+        6: "💎 VIP Shoppers",
+        7: "🎪 Impulse Buyers"
     }
-
-    cluster_counts = sample["Cluster"].value_counts().sort_index()
-    st.subheader("Cluster Distribution")
-    fig, ax = plt.subplots(figsize=(8, 4))
     colors = ["#4e79a7","#f28e2b","#e15759","#76b7b2","#59a14f","#edc948","#b07aa1","#ff9da7"]
+
+    labels_arr = np.array(labels)
+
+    st.subheader("Cluster Distribution")
+    cluster_counts = pd.Series(labels_arr).value_counts().sort_index()
+    fig, ax = plt.subplots(figsize=(9, 4))
     ax.bar(
-        [cluster_labels.get(i, f"Cluster {i}") for i in cluster_counts.index],
+        [cluster_name_map.get(i, f"Cluster {i}") for i in cluster_counts.index],
         cluster_counts.values,
         color=colors[:k]
     )
@@ -320,16 +321,13 @@ elif stage == "🔵 Clustering Analysis":
     st.pyplot(fig)
     plt.close()
 
-    # PCA scatter
     st.subheader("Cluster Visualization (PCA 2D)")
-    pca = PCA(n_components=2)
-    X_pca = pca.fit_transform(X_scaled)
     fig, ax = plt.subplots(figsize=(9, 6))
     for c in range(k):
-        mask = sample["Cluster"].values == c
+        mask = labels_arr == c
         ax.scatter(X_pca[mask, 0], X_pca[mask, 1],
-                   label=cluster_labels.get(c, f"Cluster {c}"),
-                   alpha=0.5, s=10, color=colors[c])
+                   label=cluster_name_map.get(c, f"Cluster {c}"),
+                   alpha=0.5, s=15, color=colors[c])
     ax.set_title("Customer Segments (PCA Projection)")
     ax.set_xlabel("PC 1")
     ax.set_ylabel("PC 2")
@@ -338,11 +336,11 @@ elif stage == "🔵 Clustering Analysis":
     st.pyplot(fig)
     plt.close()
 
-    # Cluster stats
     st.subheader("Cluster Summary Statistics")
-    sample["Purchase_actual"] = sample["Purchase_norm"] * (df["Purchase"].max() - df["Purchase"].min()) + df["Purchase"].min()
-    summary = sample.groupby("Cluster")[["Age_enc", "Occupation", "Marital_Status", "Purchase_actual"]].mean().round(2)
-    summary.index = [cluster_labels.get(i, f"Cluster {i}") for i in summary.index]
+    user_df2 = user_df[features].dropna().copy()
+    user_df2["Cluster"] = labels_arr
+    summary = user_df2.groupby("Cluster")[["Age_enc", "Occupation", "Marital_Status", "Purchase_norm"]].mean().round(3)
+    summary.index = [cluster_name_map.get(i, f"Cluster {i}") for i in summary.index]
     st.dataframe(summary)
 
 # ─────────────────────────────────────────────
@@ -352,9 +350,15 @@ elif stage == "🔗 Association Rule Mining":
     st.header("Stage 5: Association Rule Mining (Apriori)")
     st.markdown("Finding which **product categories** are frequently bought together.")
 
-    # Build transactions: each User_ID -> list of Product_Category_1 values
+    try:
+        from mlxtend.frequent_patterns import apriori, association_rules
+        from mlxtend.preprocessing import TransactionEncoder
+    except ImportError:
+        st.error("mlxtend is not installed. Add `mlxtend` to requirements.txt and redeploy.")
+        st.stop()
+
     @st.cache_data
-    def build_rules():
+    def build_rules(df):
         transactions = df.groupby("User_ID")["Product_Category_1"].apply(
             lambda x: list(x.astype(str).unique())
         ).tolist()
@@ -365,13 +369,12 @@ elif stage == "🔗 Association Rule Mining":
         rules = association_rules(freq_items, metric="lift", min_threshold=1.0)
         return rules, freq_items
 
-    rules, freq_items = build_rules()
+    with st.spinner("Running Apriori algorithm..."):
+        rules, freq_items = build_rules(df)
 
     col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Frequent Itemsets Found", len(freq_items))
-    with col2:
-        st.metric("Association Rules Generated", len(rules))
+    col1.metric("Frequent Itemsets Found", len(freq_items))
+    col2.metric("Association Rules Generated", len(rules))
 
     st.subheader("Top Association Rules (by Lift)")
     rules_display = rules[["antecedents", "consequents", "support", "confidence", "lift"]].copy()
@@ -381,16 +384,17 @@ elif stage == "🔗 Association Rule Mining":
     rules_display[["support","confidence","lift"]] = rules_display[["support","confidence","lift"]].round(4)
     st.dataframe(rules_display)
 
-    st.subheader("Support vs Confidence (Lift = bubble size)")
+    st.subheader("Support vs Confidence (coloured by Lift)")
     fig, ax = plt.subplots(figsize=(10, 6))
     sc = ax.scatter(
         rules["support"], rules["confidence"],
-        c=rules["lift"], cmap="YlOrRd", s=rules["lift"] * 20, alpha=0.7
+        c=rules["lift"], cmap="YlOrRd",
+        s=rules["lift"] * 20, alpha=0.7
     )
     plt.colorbar(sc, ax=ax, label="Lift")
     ax.set_xlabel("Support")
     ax.set_ylabel("Confidence")
-    ax.set_title("Association Rules: Support vs Confidence (colored by Lift)")
+    ax.set_title("Association Rules: Support vs Confidence (coloured by Lift)")
     plt.tight_layout()
     st.pyplot(fig)
     plt.close()
@@ -411,9 +415,9 @@ elif stage == "⚠️ Anomaly Detection":
     else:
         Q1 = df["Purchase"].quantile(0.25)
         Q3 = df["Purchase"].quantile(0.75)
-        IQR = Q3 - Q1
-        lower = Q1 - 1.5 * IQR
-        upper = Q3 + 1.5 * IQR
+        IQR_val = Q3 - Q1
+        lower = Q1 - 1.5 * IQR_val
+        upper = Q3 + 1.5 * IQR_val
         anomalies = df[(df["Purchase"] < lower) | (df["Purchase"] > upper)].copy()
         normal = df[(df["Purchase"] >= lower) & (df["Purchase"] <= upper)].copy()
         st.info(f"IQR bounds: ${lower:,.0f} – ${upper:,.0f}")
@@ -423,7 +427,6 @@ elif stage == "⚠️ Anomaly Detection":
     col2.metric("Anomalies Detected", f"{len(anomalies):,}")
     col3.metric("Anomaly Rate", f"{len(anomalies)/len(df)*100:.2f}%")
 
-    # Visualise
     st.subheader("Purchase Distribution with Anomalies Highlighted")
     fig, ax = plt.subplots(figsize=(12, 5))
     ax.hist(normal["Purchase"], bins=60, color="steelblue", alpha=0.7, label="Normal")
@@ -440,7 +443,9 @@ elif stage == "⚠️ Anomaly Detection":
     col_a, col_b = st.columns(2)
     with col_a:
         fig, ax = plt.subplots()
-        anomalies["Age"].value_counts().sort_index().plot(kind="bar", ax=ax, color="tomato")
+        anomalies["Age"].value_counts().reindex(
+            ["0-17","18-25","26-35","36-45","46-50","51-55","55+"]
+        ).dropna().plot(kind="bar", ax=ax, color="tomato")
         ax.set_title("Anomalies by Age Group")
         ax.set_xlabel("Age")
         ax.set_ylabel("Count")
@@ -466,7 +471,6 @@ elif stage == "⚠️ Anomaly Detection":
 elif stage == "💡 Insights & Report":
     st.header("Stage 7: Key Insights & Business Recommendations")
 
-    # KPIs
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Transactions", f"{len(df):,}")
     col2.metric("Unique Customers", f"{df['User_ID'].nunique():,}")
@@ -476,7 +480,9 @@ elif stage == "💡 Insights & Report":
     st.markdown("---")
 
     st.subheader("🔍 Finding 1 – Which Age Group Spends the Most?")
-    age_spend = df.groupby("Age")["Purchase"].mean().sort_values(ascending=False)
+    age_spend = df.groupby("Age")["Purchase"].mean().reindex(
+        ["0-17","18-25","26-35","36-45","46-50","51-55","55+"]
+    ).dropna()
     fig, ax = plt.subplots(figsize=(8, 4))
     age_spend.plot(kind="bar", ax=ax, color="cornflowerblue")
     ax.set_title("Average Purchase by Age Group")
@@ -491,7 +497,8 @@ elif stage == "💡 Insights & Report":
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
     for i, g in enumerate(["M", "F"]):
         top_cats = df[df["Gender"] == g]["Product_Category_1"].value_counts().head(8)
-        axes[i].bar(top_cats.index.astype(str), top_cats.values, color="steelblue" if g == "M" else "lightcoral")
+        axes[i].bar(top_cats.index.astype(str), top_cats.values,
+                    color="steelblue" if g == "M" else "lightcoral")
         axes[i].set_title(f"Top Categories – {'Male' if g=='M' else 'Female'}")
         axes[i].set_xlabel("Product Category 1")
         axes[i].set_ylabel("Count")
