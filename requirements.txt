@@ -6,4 +6,5 @@ seaborn
 scikit-learn
 mlxtend
 scipy
-streamlit
+streamlit==1.32.0
+imghdr-py==0.4.1
