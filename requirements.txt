@@ -7,4 +7,3 @@ scikit-learn
 mlxtend
 scipy
 streamlit==1.32.0
-imghdr-py==0.4.1
