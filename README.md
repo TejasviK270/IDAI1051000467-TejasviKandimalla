@@ -81,6 +81,9 @@ This project analyses the Black Friday retail sales dataset to uncover customer 
 
 7. **Purchase Normalisation** — The `Purchase` column was normalised to [0, 1] using Min-Max scaling so all features are on the same scale for clustering.
 
+<img width="1454" height="753" alt="image" src="https://github.com/user-attachments/assets/cd3f4ee0-7cde-4751-9732-b511d3d91393" />
+
+
 ---
 
 ## 📊 Stage 3: EDA & Visualizations
@@ -104,6 +107,16 @@ The following visualisations were created to explore patterns in the dataset:
 - **Product Category 1** dominates in frequency — categories 1, 5, and 8 are the most purchased
 - City Category **B** has the highest number of transactions
 - **Occupation** and **City Category** show weak direct correlation with purchase amount individually
+
+<img width="1414" height="707" alt="image" src="https://github.com/user-attachments/assets/b428ae1a-c558-419e-a274-c76925254902" />
+
+<img width="1449" height="591" alt="image" src="https://github.com/user-attachments/assets/f9a149fc-e341-4da5-a659-6418dd3f20b7" />
+
+<img width="1430" height="684" alt="image" src="https://github.com/user-attachments/assets/a463a434-a327-4efb-8859-cbe1150a325d" />
+
+<img width="1429" height="690" alt="image" src="https://github.com/user-attachments/assets/fab9e299-7336-4422-88e8-9bce2473a606" />
+
+<img width="1029" height="901" alt="image" src="https://github.com/user-attachments/assets/39710f4a-6652-45a8-87fa-af071e75ef9a" />
 
 ---
 
@@ -138,6 +151,14 @@ The following visualisations were created to explore patterns in the dataset:
 - `sklearn.decomposition.PCA`
 - `sklearn.preprocessing.StandardScaler`
 
+<img width="1422" height="812" alt="image" src="https://github.com/user-attachments/assets/2e21fca9-4ae0-44cd-87ed-2cbe000f843b" />
+
+<img width="1407" height="730" alt="image" src="https://github.com/user-attachments/assets/87e61b54-7440-473a-a2c1-034434ff6a5e" />
+
+<img width="1456" height="852" alt="image" src="https://github.com/user-attachments/assets/ff0f75c8-9e30-4c2d-acd0-7db293d2c564" />
+
+<img width="1421" height="361" alt="image" src="https://github.com/user-attachments/assets/b9699f13-d6ba-453b-9703-5b91ddf369f0" />
+
 ---
 
 ## 🔗 Stage 5: Association Rule Mining
@@ -169,6 +190,13 @@ Retailers can use these rules to:
 - Place frequently paired products near each other in store or online
 - Create **targeted bundle discount** campaigns
 
+
+<img width="1399" height="755" alt="image" src="https://github.com/user-attachments/assets/d1a64179-8fa1-4874-aa98-006b87e841d0" />
+
+<img width="1348" height="847" alt="image" src="https://github.com/user-attachments/assets/84b82963-0f1d-4412-a963-979b0ec1ebf3" />
+
+<img width="1407" height="722" alt="image" src="https://github.com/user-attachments/assets/1683a1ef-95b2-4f5b-b410-8cca619611bd" />
+
 ---
 
 ## ⚠️ Stage 6: Anomaly Detection
@@ -189,6 +217,15 @@ Retailers can use these rules to:
 - Anomalous spenders tend to cluster in the **26-35 and 36-45** age groups
 - Certain occupation codes appear disproportionately in the anomaly group
 - These high-value outliers represent potential **VIP customers** for loyalty programmes
+
+
+<img width="1337" height="824" alt="image" src="https://github.com/user-attachments/assets/cf30ed4a-a7e5-417c-bac8-9e8043ffd2ca" />
+
+<img width="1405" height="836" alt="image" src="https://github.com/user-attachments/assets/a76299ee-5df1-492f-b095-dbaea7006da3" />
+
+<img width="1360" height="605" alt="image" src="https://github.com/user-attachments/assets/dfef2517-eb6a-459e-a661-81cea3a6f3d4" />
+
+
 
 ---
 
@@ -211,6 +248,17 @@ Retailers can use these rules to:
 | 3 | City A customers have higher per-transaction spend | Offer premium/exclusive products in City A stores |
 | 4 | Categories 1+5, 5+8 are frequently paired | Design combo-pack offers and cross-category discounts |
 | 5 | Anomaly users spend exceptionally high | Launch a VIP loyalty programme targeting this segment |
+
+
+<img width="1364" height="141" alt="image" src="https://github.com/user-attachments/assets/82e39098-de68-4c2d-b145-28b565b4be4a" />
+
+<img width="1359" height="823" alt="image" src="https://github.com/user-attachments/assets/0a975789-845f-46aa-8bf4-085cfbc1b911" />
+
+<img width="1351" height="586" alt="image" src="https://github.com/user-attachments/assets/ea618855-bb1d-4c7a-abb7-23edc66a479a" />
+
+<img width="1360" height="861" alt="image" src="https://github.com/user-attachments/assets/e03195de-397c-4987-8b96-bc831b6855a4" />
+
+<img width="745" height="404" alt="image" src="https://github.com/user-attachments/assets/f7007a92-7c6a-4a9e-bd99-6f29c8b8ae13" />
 
 ---
 
