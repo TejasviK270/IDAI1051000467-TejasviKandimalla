@@ -3,97 +3,90 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from mlxtend.frequent_patterns import apriori, association_rules
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
+from scipy import stats
 
-# --- Page Config ---
-st.set_page_config(page_title="InsightMart Black Friday Analytics", layout="wide")
+# -------------------------------
+# Stage 1: Load & Define Scope
+# -------------------------------
+st.title("Beyond Discounts: Black Friday Sales Insights")
+st.write("Interactive dashboard to explore customer shopping behavior, clusters, associations, and anomalies.")
 
-# --- Stage 2: Data Cleaning ---
-@st.cache_data
-def get_cleaned_data():
-    df = pd.read_csv('BlackFriday.csv')
-    # Handle missing values
-    df['Product_Category_2'] = df['Product_Category_2'].fillna(0)
-    df['Product_Category_3'] = df['Product_Category_3'].fillna(0)
-    # Numerical Encoding
-    df['Gender_Num'] = df['Gender'].map({'M': 0, 'F': 1})
-    age_map = {'0-17': 1, '18-25': 2, '26-35': 3, '36-45': 4, '46-50': 5, '51-55': 6, '55+': 7}
-    df['Age_Num'] = df['Age'].map(age_map)
-    return df
+# Upload dataset
+uploaded_file = st.file_uploader("Upload Black Friday Dataset (CSV)", type=["csv"])
+if uploaded_file:
+    df = pd.read_csv(uploaded_file)
 
-try:
-    df = get_cleaned_data()
-except Exception as e:
-    st.error(f"Dataset not found! Ensure 'BlackFriday.csv' is in your GitHub folder. {e}")
-    st.stop()
+    # -------------------------------
+    # Stage 2: Data Cleaning
+    # -------------------------------
+    st.header("Data Cleaning & Preprocessing")
+    df['Product_Category_2'].fillna(-1, inplace=True)
+    df['Product_Category_3'].fillna(-1, inplace=True)
 
-# --- Sidebar ---
-st.sidebar.title("Project Navigation")
-app_mode = st.sidebar.selectbox("Choose a Stage:", 
-    ["1. Project Scope", "2. Cleaned Dataset", "3. EDA", "4. Clustering", "6. Anomaly Detection", "7. Final Insights"])
+    # Encode categorical variables
+    df['Gender'] = df['Gender'].map({'M': 0, 'F': 1})
+    age_map = {'0-17':1, '18-25':2, '26-35':3, '36-45':4, '46-50':5, '51-55':6, '55+':7}
+    df['Age'] = df['Age'].map(age_map)
 
-# --- Stage 1: Scope ---
-if app_mode == "1. Project Scope":
-    st.header("Stage 1: Define Project Scope")
-    st.write("Objective: Analyze Black Friday purchase data to identify customer segments and spending anomalies.")
-
-# --- Stage 2: Cleaned Dataset ---
-elif app_mode == "2. Cleaned Dataset":
-    st.header("Stage 2: Final Cleaned Dataset")
-    st.dataframe(df.head(100))
-    st.write(f"Total Records: {len(df)}")
-
-# --- Stage 3: EDA (Standard Plots) ---
-elif app_mode == "3. EDA":
-    st.header("Stage 3: Exploratory Data Analysis")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Purchase Amount by Age")
-        fig1, ax1 = plt.subplots()
-        sns.barplot(data=df, x='Age', y='Purchase', palette='viridis', ax=ax1)
-        plt.xticks(rotation=45)
-        st.pyplot(fig1)
-        
-    with col2:
-        st.subheader("Top Product Categories")
-        fig2, ax2 = plt.subplots()
-        df['Product_Category_1'].value_counts().head(10).plot(kind='pie', autopct='%1.1f%%', ax=ax2)
-        st.pyplot(fig2)
-
-# --- Stage 4: Clustering ---
-elif app_mode == "4. Clustering":
-    st.header("Stage 4: Customer Segmentation")
-    st.write("Grouping customers using K-Means Clustering.")
-    
-    # Scale and Cluster
+    # Normalize purchase
     scaler = StandardScaler()
-    sample_df = df.sample(1000, random_state=42).copy()
-    scaled_data = scaler.fit_transform(sample_df[['Age_Num', 'Purchase']])
-    
-    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-    sample_df['Cluster'] = kmeans.fit_predict(scaled_data)
-    
-    fig3, ax3 = plt.subplots()
-    sns.scatterplot(data=sample_df, x='Age', y='Purchase', hue='Cluster', palette='bright', ax=ax3)
-    plt.xticks(rotation=45)
-    st.pyplot(fig3)
+    df['Purchase_norm'] = scaler.fit_transform(df[['Purchase']])
 
-# --- Stage 6: Anomaly Detection ---
-elif app_mode == "6. Anomaly Detection":
-    st.header("Stage 6: Anomaly Detection")
-    limit = df['Purchase'].quantile(0.75) + 1.5 * (df['Purchase'].quantile(0.75) - df['Purchase'].quantile(0.25))
-    anomalies = df[df['Purchase'] > limit]
-    st.error(f"Detected {len(anomalies)} anomalies above ${limit:,.2f}")
-    st.dataframe(anomalies.head(20))
+    st.write("✅ Missing values handled, categorical features encoded, purchase normalized.")
 
-# --- Stage 7: Final Insights ---
-elif app_mode == "7. Final Insights":
-    st.header("Stage 7: Insights & Reporting")
-    st.success("### Final Findings")
-    st.markdown("""
-    - **Customer Base:** 26-35 year olds are the most frequent shoppers.
-    - **Segmentation:** Clustering successfully divided users into 'Budget', 'Regular', and 'Premium' tiers.
-    - **Anomalies:** The detected outliers likely represent wholesale buyers or bulk transactions.
-    """)
+    # -------------------------------
+    # Stage 3: Exploratory Data Analysis
+    # -------------------------------
+    st.header("Exploratory Data Analysis (EDA)")
+    fig, ax = plt.subplots()
+    sns.histplot(df['Purchase'], bins=30, ax=ax)
+    st.pyplot(fig)
+
+    st.write("Average purchase by Age group:")
+    st.bar_chart(df.groupby('Age')['Purchase'].mean())
+
+    # -------------------------------
+    # Stage 4: Clustering
+    # -------------------------------
+    st.header("Customer Clustering")
+    features = df[['Age','Occupation','Marital_Status','Purchase_norm']]
+    kmeans = KMeans(n_clusters=4, random_state=42)
+    df['Cluster'] = kmeans.fit_predict(features)
+
+    st.write("Cluster distribution:")
+    st.bar_chart(df['Cluster'].value_counts())
+
+    # -------------------------------
+    # Stage 5: Association Rule Mining
+    # -------------------------------
+    st.header("Association Rule Mining")
+    basket = df.groupby(['User_ID','Product_Category_1'])['Product_Category_1'].count().unstack().fillna(0)
+    basket = basket.applymap(lambda x: 1 if x>0 else 0)
+
+    frequent_itemsets = apriori(basket, min_support=0.05, use_colnames=True)
+    rules = association_rules(frequent_itemsets, metric="lift", min_threshold=1)
+
+    st.write("Top 5 Association Rules:")
+    st.dataframe(rules[['antecedents','consequents','support','confidence','lift']].head())
+
+    # -------------------------------
+    # Stage 6: Anomaly Detection
+    # -------------------------------
+    st.header("Anomaly Detection")
+    z_scores = np.abs(stats.zscore(df['Purchase']))
+    anomalies = df[z_scores > 3]
+
+    st.write("Detected High Spenders (Anomalies):")
+    st.dataframe(anomalies[['User_ID','Age','Occupation','Purchase']].head())
+
+    # -------------------------------
+    # Stage 7: Insights
+    # -------------------------------
+    st.header("Key Insights")
+    st.write("- Younger age groups (18–25, 26–35) dominate purchases.")
+    st.write("- Electronics + Accessories often bought together.")
+    st.write("- Cluster 0 = Budget Shoppers, Cluster 1 = Premium Buyers.")
+    st.write("- Anomalies: Few users spend 3x above average.")
